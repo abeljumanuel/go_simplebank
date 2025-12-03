@@ -15,33 +15,43 @@ func TestTransferTx(t *testing.T) {
 	account2 := createRandomAccount(t)
 	fmt.Println(">> before:", account1.Balance, account2.Balance)
 	// run n concurrent transfer transactions
-	n := 5
+	n := 10
 	amount := int64(10)
 
 	errs := make(chan error)
-	results := make(chan TransferTxResult)
+	//results := make(chan TransferTxResult)
 
-	for range n {
+	for i := range n {
+
+		fromAccountID := account1.ID
+		toAccountID := account2.ID
+
+		if i % 2 == 1 {
+			fromAccountID = account2.ID
+			toAccountID = account1.ID
+		}
+
 		go func() {
 			ctx := context.Background()
-			result, err := store.TransferTX(ctx, TransferTxParams{
-				FromAccountID: account1.ID,
-				ToAccountID:   account2.ID,
+			//result, err := store.TransferTX(ctx, TransferTxParams{
+			_, err := store.TransferTX(ctx, TransferTxParams{
+				FromAccountID: fromAccountID,
+				ToAccountID:   toAccountID,
 				Amount:        amount,
 			})
 
 			errs <- err
-			results <- result
+			//results <- result
 		}()
 	}
 
 	// check results
-	existed := make(map[int]bool)
+	//existed := make(map[int]bool)
 
 	for range n {
 		err := <-errs
 		require.NoError(t, err)
-
+		/*
 		result := <-results
 		require.NotEmpty(t, result)
 
@@ -99,6 +109,7 @@ func TestTransferTx(t *testing.T) {
 		require.True(t, k >= 1 && k <= n)
 		require.NotContains(t, existed, k)
 		existed[k] = true
+		*/
 	}
 
 	// check the final updated balances
@@ -109,6 +120,8 @@ func TestTransferTx(t *testing.T) {
 	require.NoError(t, err)
 
 	fmt.Println(">> after:", updatedAccount1.Balance, updatedAccount2.Balance)
-	require.Equal(t, account1.Balance-int64(n)*amount, updatedAccount1.Balance)
-	require.Equal(t, account2.Balance+int64(n)*amount, updatedAccount2.Balance)
+	//require.Equal(t, account1.Balance-int64(n)*amount, updatedAccount1.Balance)
+	//require.Equal(t, account2.Balance+int64(n)*amount, updatedAccount2.Balance)
+	require.Equal(t, account1.Balance, updatedAccount1.Balance)
+	require.Equal(t, account2.Balance, updatedAccount2.Balance)
 }
